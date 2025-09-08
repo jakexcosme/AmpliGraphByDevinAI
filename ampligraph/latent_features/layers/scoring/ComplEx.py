@@ -90,19 +90,14 @@ class ComplEx(AbstractScoringLayer):
 
         # compute the subject corruption score using ent_real, ent_img
         # (corruption embeddings) as subject embeddings
+        po_terms = tf.stack([
+            e_p_real * e_o_real + e_p_img * e_o_img,
+            e_p_real * e_o_img - e_p_img * e_o_real
+        ], axis=2)
+        po_terms_expanded = tf.expand_dims(po_terms, 1)
+        
         sub_corr_score = tf.reduce_sum(
-            ent_real
-            * (
-                tf.expand_dims(e_p_real * e_o_real, 1)
-                + tf.expand_dims(e_p_img * e_o_img, 1)
-            )
-            + (
-                ent_img
-                * (
-                    tf.expand_dims(e_p_real * e_o_img, 1)
-                    - tf.expand_dims(e_p_img * e_o_real, 1)
-                )
-            ),
+            ent_real * po_terms_expanded[:, :, 0] + ent_img * po_terms_expanded[:, :, 1],
             axis=2,
         )
         return sub_corr_score
@@ -135,17 +130,14 @@ class ComplEx(AbstractScoringLayer):
 
         # compute the object corruption score using ent_real, ent_img
         # (corruption embeddings) as object embeddings
+        sp_terms = tf.stack([
+            e_s_real * e_p_real - e_s_img * e_p_img,
+            e_s_img * e_p_real + e_s_real * e_p_img
+        ], axis=2)
+        sp_terms_expanded = tf.expand_dims(sp_terms, 1)
+        
         obj_corr_score = tf.reduce_sum(
-            (
-                tf.expand_dims(e_s_real * e_p_real, 1)
-                - tf.expand_dims(e_s_img * e_p_img, 1)
-            )
-            * ent_real
-            + (
-                tf.expand_dims(e_s_img * e_p_real, 1)
-                + tf.expand_dims(e_s_real * e_p_img, 1)
-            )
-            * ent_img,
+            sp_terms_expanded[:, :, 0] * ent_real + sp_terms_expanded[:, :, 1] * ent_img,
             axis=2,
         )
         return obj_corr_score
